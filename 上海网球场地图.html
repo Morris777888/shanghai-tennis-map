@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>上海网球场地图 - 在线订场指南</title>
+  <meta name="description" content="上海网球场地图，标注全市室内室外网球场，含地址、价格、场地数量及预定渠道二维码">
+
+  <!-- 高德地图安全密钥 -->
+  <script>
+    window._AMapSecurityConfig = {
+      securityJsCode: '3cf726fbd89834d80db1749343614cac'
+    };
+  </script>
+  <!-- 高德地图 JS API 2.0 -->
+  <script src="https://webapi.amap.com/maps?v=2.0&key=b3dfb24d1081ea513b3f3f8a62089e44"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; font-size: 14px; color: #333; background: #f5f5f5; overflow: hidden; }
+    .app-container { display: flex; height: 100vh; width: 100vw; }
+
+    /* 侧边栏 */
+    .sidebar { width: 380px; min-width: 380px; background: #fff; display: flex; flex-direction: column; box-shadow: 2px 0 12px rgba(0,0,0,0.08); z-index: 10; }
+    .sidebar-header { padding: 20px 20px 16px; border-bottom: 1px solid #eee; background: linear-gradient(135deg, #1a5f2a 0%, #2e8b47 100%); color: #fff; }
+    .sidebar-header h1 { font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .sidebar-header h1 .icon { font-size: 24px; }
+    .stats-bar { display: flex; gap: 16px; font-size: 12px; opacity: 0.9; }
+    .stat-item { display: flex; align-items: center; gap: 4px; }
+    .stat-item .num { font-size: 16px; font-weight: 700; }
+
+    .filter-section { padding: 14px 20px; border-bottom: 1px solid #eee; background: #fafafa; }
+    .search-box { position: relative; margin-bottom: 12px; }
+    .search-box input { width: 100%; padding: 10px 14px 10px 36px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; outline: none; transition: border-color 0.2s; }
+    .search-box input:focus { border-color: #2e8b47; }
+    .search-box .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #999; }
+    .type-filters { display: flex; gap: 8px; margin-bottom: 10px; }
+    .type-btn { flex: 1; padding: 7px 0; border: 1px solid #ddd; border-radius: 6px; background: #fff; font-size: 12px; cursor: pointer; transition: all 0.2s; text-align: center; }
+    .type-btn:hover { border-color: #2e8b47; color: #2e8b47; }
+    .type-btn.active { background: #2e8b47; color: #fff; border-color: #2e8b47; }
+    .district-filter { display: flex; flex-wrap: wrap; gap: 6px; }
+    .district-chip { padding: 4px 10px; border-radius: 12px; background: #fff; border: 1px solid #e0e0e0; font-size: 11px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .district-chip:hover { border-color: #2e8b47; color: #2e8b47; }
+    .district-chip.active { background: #2e8b47; color: #fff; border-color: #2e8b47; }
+
+    .court-list { flex: 1; overflow-y: auto; padding: 12px 16px; }
+    .court-list::-webkit-scrollbar { width: 4px; }
+    .court-list::-webkit-scrollbar-track { background: transparent; }
+    .court-list::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+    .court-card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 14px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; }
+    .court-card:hover { border-color: #2e8b47; box-shadow: 0 2px 8px rgba(46, 139, 71, 0.12); transform: translateY(-1px); }
+    .court-card.active { border-color: #2e8b47; background: #f8fdf9; }
+    .court-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .court-name { font-size: 15px; font-weight: 600; color: #1a1a1a; line-height: 1.3; flex: 1; }
+    .court-tags { display: flex; gap: 4px; flex-shrink: 0; margin-left: 6px; }
+    .tag { padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 500; }
+    .tag-indoor { background: #e8f5e9; color: #2e7d32; }
+    .tag-outdoor { background: #e3f2fd; color: #1565c0; }
+    .tag-both { background: #fff3e0; color: #e65100; }
+    .court-address { font-size: 12px; color: #888; margin-bottom: 8px; display: flex; align-items: center; gap: 4px; line-height: 1.4; }
+    .court-meta { display: flex; gap: 12px; font-size: 12px; color: #666; }
+    .court-meta span { display: flex; align-items: center; gap: 3px; }
+    .court-price { color: #e65100; font-weight: 500; }
+
+    /* 地图区域 */
+    .map-container { flex: 1; position: relative; }
+    #map { width: 100%; height: 100%; }
+    .map-controls { position: absolute; top: 16px; right: 16px; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
+    .map-control-btn { width: 36px; height: 36px; background: #fff; border: none; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .map-control-btn:hover { background: #f5f5f5; transform: scale(1.05); }
+
+    /* 信息弹窗 */
+    .info-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; }
+    .info-modal-overlay.show { opacity: 1; visibility: visible; }
+    .info-modal { background: #fff; border-radius: 16px; width: 520px; max-width: 90vw; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column; transform: scale(0.9); transition: transform 0.3s; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .info-modal-overlay.show .info-modal { transform: scale(1); }
+    .modal-photo { width: 100%; height: 220px; object-fit: cover; background: #f0f0f0; }
+    .modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+    .modal-body::-webkit-scrollbar { width: 4px; }
+    .modal-body::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+    .modal-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+    .modal-title { font-size: 18px; font-weight: 600; color: #1a1a1a; line-height: 1.3; }
+    .modal-tags { display: flex; gap: 6px; }
+    .modal-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; margin-bottom: 16px; }
+    .info-row { display: flex; align-items: flex-start; gap: 6px; font-size: 13px; line-height: 1.5; }
+    .info-row .label { color: #999; flex-shrink: 0; min-width: 52px; }
+    .info-row .value { color: #333; }
+    .info-row.full-width { grid-column: 1 / -1; }
+
+    .qrcode-section { border-top: 1px dashed #e0e0e0; padding-top: 16px; margin-top: 4px; }
+    .qrcode-section h4 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: #1a1a1a; display: flex; align-items: center; gap: 6px; }
+    .qrcode-box { display: flex; gap: 16px; align-items: flex-start; background: #fafafa; border-radius: 10px; padding: 16px; }
+    .qrcode-img { width: 140px; height: 140px; border-radius: 8px; flex-shrink: 0; background: #fff; border: 1px solid #eee; }
+    .qrcode-info { flex: 1; }
+    .qrcode-info .channel-name { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 6px; }
+    .qrcode-info .channel-desc { font-size: 12px; color: #666; line-height: 1.6; margin-bottom: 10px; }
+    .qrcode-info .phone-btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 14px; background: #2e8b47; color: #fff; border-radius: 6px; font-size: 13px; text-decoration: none; transition: background 0.2s; }
+    .qrcode-info .phone-btn:hover { background: #247a3a; }
+    .qrcode-tips { font-size: 11px; color: #999; margin-top: 10px; font-style: italic; }
+
+    .modal-close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.4); color: #fff; border: none; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; z-index: 10; }
+    .modal-close:hover { background: rgba(0,0,0,0.6); }
+
+    .photo-placeholder { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); color: #2e7d32; gap: 8px; }
+    .photo-placeholder .ph-icon { font-size: 48px; opacity: 0.5; }
+    .photo-placeholder .ph-text { font-size: 12px; opacity: 0.6; }
+
+    /* 加载动画 */
+    .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; gap: 16px; }
+    .loading-overlay.hidden { display: none; }
+    .spinner { width: 40px; height: 40px; border: 3px solid #e0e0e0; border-top-color: #2e8b47; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: #666; font-size: 14px; }
+
+    .sidebar-footer { padding: 10px 16px; border-top: 1px solid #eee; font-size: 11px; color: #aaa; text-align: center; background: #fafafa; }
+    .empty-state { text-align: center; padding: 40px 20px; color: #999; }
+    .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+    .empty-state p { font-size: 13px; }
+
+    /* 地图信息窗 */
+    .info-window-content { padding: 10px 14px; min-width: 200px; }
+    .info-window-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .info-window-addr { font-size: 12px; color: #888; margin-bottom: 6px; }
+    .info-window-meta { font-size: 12px; color: #666; }
+
+    /* 移动端适配 */
+    @media (max-width: 768px) {
+      .app-container { flex-direction: column; }
+      .sidebar { width: 100%; min-width: auto; height: 45vh; min-height: 300px; }
+      .map-container { height: 55vh; }
+      .info-modal { width: 92vw; max-height: 80vh; }
+      .modal-info-grid { grid-template-columns: 1fr; }
+      .qrcode-box { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 加载动画 -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text">正在加载地图数据...</div>
+  </div>
+
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1><span class="icon">🎾</span>上海网球场地图</h1>
+        <div class="stats-bar">
+          <div class="stat-item"><span>共</span><span class="num" id="statTotal">0</span><span>家</span></div>
+          <div class="stat-item"><span>室内</span><span class="num" id="statIndoor">0</span></div>
+          <div class="stat-item"><span>室外</span><span class="num" id="statOutdoor">0</span></div>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="搜索球场名称、地址...">
+        </div>
+        <div class="type-filters">
+          <button class="type-btn active" data-type="all">全部</button>
+          <button class="type-btn" data-type="indoor">室内</button>
+          <button class="type-btn" data-type="outdoor">室外</button>
+        </div>
+        <div class="district-filter" id="districtFilter"></div>
+      </div>
+
+      <div class="court-list" id="courtList"></div>
+
+      <div class="sidebar-footer">
+        ⚠️ 价格为参考价，请以场馆实际公示为准 | 照片为示意图片
+      </div>
+    </aside>
+
+    <div class="map-container">
+      <div id="map"></div>
+      <div class="map-controls">
+        <button class="map-control-btn" onclick="zoomIn()" title="放大">+</button>
+        <button class="map-control-btn" onclick="zoomOut()" title="缩小">−</button>
+        <button class="map-control-btn" onclick="resetView()" title="重置视角">🏠</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-modal-overlay" id="modalOverlay" onclick="onOverlayClick(event)">
+    <div class="info-modal" id="infoModal"></div>
+  </div>
+
+<script>
+// ===================== 数据 =====================
+const TENNIS_COURTS = [
+  { id: 1, name: "旗忠网球中心", address: "闵行区马桥镇元江路5500号", district: "闵行区", type: "both", courtCount: 22, price: "室内80-200元/时；室外50-120元/时", phone: "021-64090438", bookingChannel: "电话预约 / 久事体育APP", bookingUrl: "tel:02164090438", bookingTips: "大师赛举办地，场地专业，建议提前电话预约", hours: "08:00-22:00", photo: "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=600&h=400&fit=crop", lng: 121.360, lat: 31.015 },
+  { id: 2, name: "仙霞网球中心", address: "长宁区虹桥路1885号", district: "长宁区", type: "both", courtCount: 9, price: "早场30-40元/时；日场40-60元/时；晚场80-100元/时", phone: "021-62628327", bookingChannel: "电话预约 / 久事仙霞小程序", bookingUrl: "tel:02162628327", bookingTips: "公益时段30-45元/时，普通时段60-220元/时", hours: "06:00-22:00", photo: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=600&h=400&fit=crop", lng: 121.395, lat: 31.195 },
+  { id: 3, name: "源深体育中心网球场", address: "浦东新区羽山路9号", district: "浦东新区", type: "indoor", courtCount: 12, price: "工作日白天40元/时；晚上60元/时；周末白天50元/时；晚上80元/时", phone: "021-58606101", bookingChannel: "电话预约 / 现场预约", bookingUrl: "tel:02158606101", bookingTips: "3个气膜馆（泡泡馆），ITF认证场地，需提前预约", hours: "06:30-22:00", photo: "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=600&h=400&fit=crop", lng: 121.532, lat: 31.228 },
+  { id: 4, name: "上海国际网球中心", address: "徐汇区衡山路516号", district: "徐汇区", type: "indoor", courtCount: 2, price: "中高价位，具体电话咨询", phone: "021-64155588", bookingChannel: "电话预约", bookingUrl: "tel:02164155588", bookingTips: "高端场地，设施一流，位于衡山路繁华地段", hours: "07:00-22:00", photo: "https://images.unsplash.com/photo-1530915365347-e35f749f04b1?w=600&h=400&fit=crop", lng: 121.448, lat: 31.208 },
+  { id: 5, name: "上海体育馆网球场（万体馆）", address: "徐汇区漕溪北路1111号", district: "徐汇区", type: "outdoor", courtCount: 6, price: "工作日白天35元/时；晚上60元/时；周末白天50元/时；晚上80元/时", phone: "021-64385200", bookingChannel: "电话预约（提前一周）/ 久事体育APP", bookingUrl: "tel:02164385200", bookingTips: "6片室外场地，可提前一周电话预约", hours: "06:00-22:00", photo: "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=600&h=400&fit=crop", lng: 121.437, lat: 31.183 },
+  { id: 6, name: "康东网球馆", address: "徐汇区浦北路270号", district: "徐汇区", type: "indoor", courtCount: 4, price: "白天70元/时；晚上90元/时；周末白天80元/时；晚上100元/时", phone: "021-64752107", bookingChannel: "电话预约", bookingUrl: "tel:02164752107", bookingTips: "室内场地，自然光线好", hours: "08:00-22:00", photo: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=600&h=400&fit=crop", lng: 121.415, lat: 31.148 },
+  { id: 7, name: "卢湾网球中心", address: "黄浦区肇嘉浜路128号", district: "黄浦区", type: "both", courtCount: 4, price: "80-120元/时", phone: "021-64675245", bookingChannel: "GoSports勾勾运动小程序 / 电话预约", bookingUrl: "https://m.dianping.com/shop/search?keyword=卢湾网球中心", bookingTips: "网红红墙球场，市中心位置，工作日白天较易抢", hours: "07:00-22:00", photo: "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=600&h=400&fit=crop", lng: 121.465, lat: 31.205 },
+  { id: 8, name: "静安体育场网球场", address: "静安区威海路681号", district: "静安区", type: "outdoor", courtCount: 5, price: "工作日白天50元/时；晚上100元/时；周末白天60元/时；晚上120元/时", phone: "021-62174055", bookingChannel: "电话预约", bookingUrl: "tel:02162174055", bookingTips: "五片塑胶场地，位于市中心", hours: "06:00-22:00", photo: "https://images.unsplash.com/photo-1530915365347-e35f749f04b1?w=600&h=400&fit=crop", lng: 121.455, lat: 31.230 },
+  { id: 9, name: "虹口网球中心", address: "虹口区赤峰路358号", district: "虹口区", type: "indoor", courtCount: 4, price: "80-120元/时", phone: "021-65361549", bookingChannel: "电话预约", bookingUrl: "tel:02165361549", bookingTips: "室内场馆，设施较好", hours: "08:00-22:00", photo: "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=600&h=400&fit=crop", lng: 121.480, lat: 31.275 },
+  { id: 10, name: "杨浦体育馆网球场", address: "杨浦区隆昌路640号", district: "杨浦区", type: "outdoor", courtCount: 3, price: "具体价格电话咨询", phone: "021-65390911", bookingChannel: "电话预约", bookingUrl: "tel:02165390911", bookingTips: "杨浦区老牌体育场馆", hours: "06:00-21:00", photo: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=600&h=400&fit=crop", lng: 121.535, lat: 31.275 },
+  { id: 11, name: "中原体育场网球场", address: "杨浦区开鲁路518号", district: "杨浦区", type: "outdoor", courtCount: 2, price: "较低价位，具体电话咨询", phone: "021-65745928", bookingChannel: "电话预约 / 现场预约", bookingUrl: "tel:02165745928", bookingTips: "性价比较高的社区体育场", hours: "06:00-21:00", photo: "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=600&h=400&fit=crop", lng: 121.525, lat: 31.325 },
+  { id: 12, name: "上海市民体育公园网球场", address: "嘉定区安辰路近宝安公路（E区入口）", district: "嘉定区", type: "outdoor", courtCount: 6, price: "公益场20元/时起", phone: "021-59109222", bookingChannel: "上海市民体育公园小程序 / 电话预约", bookingUrl: "https://m.dianping.com/shop/search?keyword=上海市民体育公园", bookingTips: "公益价低至20元/时，性价比极高", hours: "08:00-20:00", photo: "https://images.unsplash.com/photo-1530915365347-e35f749f04b1?w=600&h=400&fit=crop", lng: 121.260, lat: 31.380 },
+  { id: 13, name: "快网网球俱乐部（浦东成山路店）", address: "浦东新区成山路", district: "浦东新区", type: "indoor", courtCount: 4, price: "会员制/按次收费，具体咨询", phone: "400-000-0000", bookingChannel: "微信小程序「快网网球」 / 大众点评", bookingUrl: "https://m.dianping.com/shop/search?keyword=快网网球", bookingTips: "微信搜索「快网网球」小程序，支持多门店预约", hours: "08:00-22:00", photo: "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=600&h=400&fit=crop", lng: 121.515, lat: 31.180 },
+  { id: 14, name: "快网网球俱乐部（徐汇店）", address: "徐汇区宜山路", district: "徐汇区", type: "indoor", courtCount: 3, price: "会员制/按次收费，具体咨询", phone: "400-000-0000", bookingChannel: "微信小程序「快网网球」 / 大众点评", bookingUrl: "https://m.dianping.com/shop/search?keyword=快网网球", bookingTips: "微信搜索「快网网球」小程序，适合约球和培训", hours: "08:00-22:00", photo: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=600&h=400&fit=crop", lng: 121.425, lat: 31.185 },
+  { id: 15, name: "上海网球俱乐部", address: "闵行区华漕镇金丰路555弄", district: "闵行区", type: "both", courtCount: 8, price: "较高价位，会员制为主", phone: "021-22010088", bookingChannel: "电话预约 / 会员预约", bookingUrl: "tel:02122010088", bookingTips: "高端网球俱乐部，设施完善，会员制", hours: "07:00-22:00", photo: "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=600&h=400&fit=crop", lng: 121.310, lat: 31.215 },
+  { id: 16, name: "华东理工大学网球场", address: "徐汇区梅陇路130号", district: "徐汇区", type: "outdoor", courtCount: 4, price: "工作日6-8元/时；周末8-15元/时", phone: "021-64247251", bookingChannel: "现场预约（需确认开放政策）", bookingUrl: "tel:02164247251", bookingTips: "性价比极高，但需确认是否对社会开放", hours: "06:30-21:00", photo: "https://images.unsplash.com/photo-1530915365347-e35f749f04b1?w=600&h=400&fit=crop", lng: 121.420, lat: 31.145 },
+  { id: 17, name: "华东师范大学网球场", address: "普陀区中山北路3663号", district: "普陀区", type: "outdoor", courtCount: 4, price: "白天30-40元/时；晚上50元/时（历史价）", phone: "021-62233330", bookingChannel: "现场预约（需确认开放政策）", bookingUrl: "tel:02162233330", bookingTips: "高校场地，价格实惠，需确认当前开放政策", hours: "06:30-21:00", photo: "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=600&h=400&fit=crop", lng: 121.405, lat: 31.230 },
+  { id: 18, name: "上海体育宫", address: "普陀区大渡河路1860号", district: "普陀区", type: "indoor", courtCount: 2, price: "具体价格电话咨询", phone: "021-62653338", bookingChannel: "电话预约", bookingUrl: "tel:02162653338", bookingTips: "室内场馆，位于普陀区中心地带", hours: "08:00-21:00", photo: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=600&h=400&fit=crop", lng: 121.395, lat: 31.255 },
+  { id: 19, name: "长宁网球场", address: "长宁区华山路1038弄173号", district: "长宁区", type: "outdoor", courtCount: 3, price: "白天30-50元/时；晚上50-60元/时", phone: "021-62524436", bookingChannel: "电话预约 / 现场预约", bookingUrl: "tel:02162524436", bookingTips: "三片标准塑胶场地，社区型球场", hours: "06:00-21:00", photo: "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=600&h=400&fit=crop", lng: 121.435, lat: 31.215 },
+  { id: 20, name: "天鹭网球场", address: "长宁区虹桥机场迎宾三路", district: "长宁区", type: "outdoor", courtCount: 4, price: "25-35元/时", phone: "021-62681789", bookingChannel: "电话预约", bookingUrl: "tel:02162681789", bookingTips: "四片标准塑胶场，价格实惠", hours: "06:00-21:00", photo: "https://images.unsplash.com/photo-1530915365347-e35f749f04b1?w=600&h=400&fit=crop", lng: 121.335, lat: 31.195 },
+  { id: 21, name: "三林体育中心网球场", address: "浦东新区云莲路", district: "浦东新区", type: "outdoor", courtCount: 3, price: "34元/人（按人收费）", phone: "021-50871611", bookingChannel: "电话预约 / 现场预约", bookingUrl: "tel:02150871611", bookingTips: "按人次收费，适合散客", hours: "08:00-20:00", photo: "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=600&h=400&fit=crop", lng: 121.505, lat: 31.155 },
+  { id: 22, name: "周浦体育中心网球馆", address: "浦东新区周浦镇", district: "浦东新区", type: "indoor", courtCount: 12, price: "具体价格电话咨询", phone: "021-58113611", bookingChannel: "周浦体育中心小程序 / 电话预约", bookingUrl: "tel:02158113611", bookingTips: "12片室内场地，设施较新", hours: "08:00-22:00", photo: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=600&h=400&fit=crop", lng: 121.575, lat: 31.115 },
+  { id: 23, name: "明佳苑网球场", address: "徐汇区龙华西路545号4层", district: "徐汇区", type: "indoor", courtCount: 2, price: "平日80-120元/时；周末100-150元/时", phone: "15000666870", bookingChannel: "大众点评 / 电话预约", bookingUrl: "https://m.dianping.com/shop/search?keyword=明佳苑网球场", bookingTips: "室内场馆，位于高层", hours: "08:00-22:00", photo: "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=600&h=400&fit=crop", lng: 121.445, lat: 31.175 },
+  { id: 24, name: "划船俱乐部领琇龙吴俱乐部", address: "徐汇区龙吴路1594号", district: "徐汇区", type: "both", courtCount: 3, price: "具体价格电话咨询", phone: "400-662-5170", bookingChannel: "电话预约", bookingUrl: "tel:4006625170", bookingTips: "综合场馆，网球/羽毛球等", hours: "08:00-22:00", photo: "https://images.unsplash.com/photo-1530915365347-e35f749f04b1?w=600&h=400&fit=crop", lng: 121.435, lat: 31.135 },
+  { id: 25, name: "海夏园露天灯光网球场", address: "宝山区牡丹江路881-889号", district: "宝山区", type: "outdoor", courtCount: 2, price: "具体价格电话咨询", phone: "021-56560739", bookingChannel: "电话预约 / 现场预约", bookingUrl: "tel:02156560739", bookingTips: "带灯光的室外场地，适合晚间打球", hours: "06:00-21:00", photo: "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=600&h=400&fit=crop", lng: 121.485, lat: 31.385 },
+  { id: 26, name: "静安区工人体育场网球场", address: "静安区昌平路888号", district: "静安区", type: "outdoor", courtCount: 3, price: "工作日上午30元/时；下午50元/时；周末上午40元/时；下午60元/时", phone: "021-62539952", bookingChannel: "电话预约 / 现场预约", bookingUrl: "tel:02162539952", bookingTips: "性价比较高的社区场地", hours: "06:00-21:00", photo: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=600&h=400&fit=crop", lng: 121.445, lat: 31.235 },
+  { id: 27, name: "新兴网球沙龙", address: "徐汇区宜山路1101号", district: "徐汇区", type: "both", courtCount: 2, price: "白天30元/时；晚上50元/时", phone: "021-64855320", bookingChannel: "电话预约", bookingUrl: "tel:02164855320", bookingTips: "24小时开放，两片塑胶场", hours: "全天24小时", photo: "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=600&h=400&fit=crop", lng: 121.420, lat: 31.180 },
+  { id: 28, name: "复兴网球中心（市跳水池网球场）", address: "徐汇区复兴中路1380号", district: "徐汇区", type: "outdoor", courtCount: 3, price: "早场30元/时；日场50-60元/时；夜场70-80元/时", phone: "021-64370766", bookingChannel: "电话预约", bookingUrl: "tel:02164370766", bookingTips: "市中心位置便利", hours: "06:00-22:00", photo: "https://images.unsplash.com/photo-1530915365347-e35f749f04b1?w=600&h=400&fit=crop", lng: 121.455, lat: 31.210 },
+  { id: 29, name: "HGA网球俱乐部（浦三路店）", address: "浦东新区浦三路1515号", district: "浦东新区", type: "indoor", courtCount: 3, price: "具体价格电话咨询", phone: "021-58705678", bookingChannel: "电话预约 / 大众点评", bookingUrl: "https://m.dianping.com/shop/search?keyword=HGA网球俱乐部", bookingTips: "专业网球俱乐部连锁", hours: "08:00-22:00", photo: "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=600&h=400&fit=crop", lng: 121.520, lat: 31.150 },
+  { id: 30, name: "上海外国语大学网球场", address: "虹口区大连西路550号", district: "虹口区", type: "outdoor", courtCount: 2, price: "10-20元/时（历史价，需确认）", phone: "021-65311900", bookingChannel: "现场预约（需确认开放政策）", bookingUrl: "tel:02165311900", bookingTips: "高校场地，价格实惠", hours: "06:30-21:00", photo: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=600&h=400&fit=crop", lng: 121.480, lat: 31.270 }
+];
+
+const DISTRICTS = ['全部', '浦东新区', '徐汇区', '长宁区', '静安区', '黄浦区', '虹口区', '杨浦区', '闵行区', '普陀区', '嘉定区', '宝山区'];
+
+// ===================== 逻辑 =====================
+let map = null;
+let markers = [];
+let mapLoaded = false;
+let currentFilter = { type: 'all', district: '全部', keyword: '' };
+
+const TYPE_MAP = {
+  indoor: { label: '室内', class: 'tag-indoor' },
+  outdoor: { label: '室外', class: 'tag-outdoor' },
+  both: { label: '室内外', class: 'tag-both' }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  initFilters();
+  initSearch();
+  renderCourtList();
+  updateStats();
+  initMap();
+});
+
+function initMap() {
+  const loadingEl = document.getElementById('loadingOverlay');
+  const loadingText = loadingEl.querySelector('.loading-text');
+
+  if (typeof AMap === 'undefined') {
+    loadingText.textContent = '高德地图脚本加载失败，请检查网络连接';
+    showMapFallback('高德地图脚本未能加载，请检查网络是否可访问 https://webapi.amap.com');
+    return;
+  }
+
+  try {
+    map = new AMap.Map('map', {
+      zoom: 11,
+      center: [121.4737, 31.2304],
+      viewMode: '2D',
+      mapStyle: 'amap://styles/normal',
+      resizeEnable: true
+    });
+
+    mapLoaded = true;
+
+    AMap.plugin(['AMap.ToolBar', 'AMap.Scale'], () => {
+      map.addControl(new AMap.ToolBar({ position: 'LB', offset: [10, 60] }));
+      map.addControl(new AMap.Scale());
+    });
+
+    createMarkers();
+    setTimeout(() => loadingEl.classList.add('hidden'), 600);
+  } catch (err) {
+    console.error('地图初始化失败:', err);
+    loadingText.textContent = '地图初始化失败';
+    showMapFallback('地图初始化失败: ' + err.message);
+  }
+}
+
+function showMapFallback(message) {
+  document.getElementById('map').innerHTML = `
+    <div style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;
+      background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); color: #2e7d32; text-align: center; padding: 40px;">
+      <div style="font-size: 64px; margin-bottom: 16px;">🎾</div>
+      <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">地图暂时不可用</div>
+      <div style="font-size: 13px; color: #555; max-width: 400px; line-height: 1.6;">
+        ${message}<br><br>
+        请使用左侧列表浏览球场信息。<br>
+        提示：地图需要通过 HTTP 服务器访问（而非直接双击打开）。
+      </div>
+      <div style="margin-top: 20px; font-size: 12px; color: #777;">
+        终端运行: <code style="background:#fff; padding:4px 8px; border-radius:4px;">python3 -m http.server 8080</code><br>
+        然后访问: <code style="background:#fff; padding:4px 8px; border-radius:4px;">http://localhost:8080</code>
+      </div>
+    </div>`;
+}
+
+function createMarkers() {
+  if (!map || !mapLoaded) return;
+  map.clearMap();
+  markers = [];
+  const filtered = getFilteredCourts();
+
+  filtered.forEach(court => {
+    const typeInfo = TYPE_MAP[court.type];
+    const markerContent = document.createElement('div');
+    markerContent.innerHTML = `<div style="width:32px;height:32px;border-radius:50%;background:${getTypeColor(court.type)};display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:2px solid #fff;cursor:pointer;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">🎾</div>`;
+
+    const marker = new AMap.Marker({
+      position: [court.lng, court.lat],
+      content: markerContent,
+      offset: new AMap.Pixel(-16, -32),
+      title: court.name,
+      extData: { id: court.id }
+    });
+
+    marker.on('click', () => { showCourtModal(court); highlightCourtCard(court.id); });
+
+    const infoWindow = new AMap.InfoWindow({
+      content: `<div class="info-window-content"><div class="info-window-title">${court.name}</div><div class="info-window-addr">📍 ${court.address}</div><div class="info-window-meta"><span class="tag ${typeInfo.class}" style="display:inline-block;margin-right:6px;">${typeInfo.label}</span><span>🏟️ ${court.courtCount}片</span></div></div>`,
+      offset: new AMap.Pixel(0, -36)
+    });
+
+    marker.on('mouseover', () => infoWindow.open(map, marker.getPosition()));
+    marker.on('mouseout', () => infoWindow.close());
+
+    map.add(marker);
+    markers.push(marker);
+  });
+
+  if (markers.length > 0) {
+    map.setFitView(markers, false, [60, 60, 60, 60], 11);
+  }
+}
+
+function getTypeColor(type) {
+  return { indoor: '#2e7d32', outdoor: '#1565c0', both: '#e65100' }[type] || '#666';
+}
+
+function getFilteredCourts() {
+  return TENNIS_COURTS.filter(court => {
+    if (currentFilter.type !== 'all') {
+      if (currentFilter.type === 'indoor' && court.type !== 'indoor' && court.type !== 'both') return false;
+      if (currentFilter.type === 'outdoor' && court.type !== 'outdoor' && court.type !== 'both') return false;
+    }
+    if (currentFilter.district !== '全部' && court.district !== currentFilter.district) return false;
+    if (currentFilter.keyword) {
+      const kw = currentFilter.keyword.toLowerCase();
+      if (!court.name.toLowerCase().includes(kw) && !court.address.toLowerCase().includes(kw) && !court.district.includes(kw)) return false;
+    }
+    return true;
+  });
+}
+
+function renderCourtList() {
+  const listEl = document.getElementById('courtList');
+  const courts = getFilteredCourts();
+  if (courts.length === 0) {
+    listEl.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><p>没有找到符合条件的球场</p><p style="font-size:12px;margin-top:6px;">请尝试调整筛选条件</p></div>`;
+    return;
+  }
+  listEl.innerHTML = courts.map(court => {
+    const typeInfo = TYPE_MAP[court.type];
+    return `<div class="court-card" data-id="${court.id}" onclick="onCourtCardClick(${court.id})"><div class="court-card-header"><div class="court-name">${court.name}</div><div class="court-tags"><span class="tag ${typeInfo.class}">${typeInfo.label}</span></div></div><div class="court-address"><span>📍</span> ${court.address}</div><div class="court-meta"><span>🏟️ ${court.courtCount}片场地</span><span class="court-price">💰 ${court.price.split('；')[0]}</span></div></div>`;
+  }).join('');
+}
+
+function onCourtCardClick(id) {
+  const court = TENNIS_COURTS.find(c => c.id === id);
+  if (!court) return;
+  highlightCourtCard(id);
+  if (map && mapLoaded) map.setZoomAndCenter(15, [court.lng, court.lat]);
+  showCourtModal(court);
+}
+
+function highlightCourtCard(id) {
+  document.querySelectorAll('.court-card').forEach(card => {
+    card.classList.toggle('active', parseInt(card.dataset.id) === id);
+  });
+}
+
+function showCourtModal(court) {
+  const typeInfo = TYPE_MAP[court.type];
+  const modal = document.getElementById('infoModal');
+  const overlay = document.getElementById('modalOverlay');
+
+  const photoHtml = court.photo
+    ? `<img class="modal-photo" src="${court.photo}" alt="${court.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="photo-placeholder" style="display:none;position:absolute;top:0;left:0;right:0;height:220px;"><div class="ph-icon">🎾</div><div class="ph-text">${court.name}</div></div>`
+    : `<div class="photo-placeholder" style="height:220px;"><div class="ph-icon">🎾</div><div class="ph-text">${court.name}</div></div>`;
+
+  const qrUrl = court.bookingUrl || `tel:${court.phone.replace(/-/g, '')}`;
+  const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(qrUrl)}`;
+  const isTel = qrUrl.startsWith('tel:');
+  const isWeb = qrUrl.startsWith('http');
+
+  let qrDesc = '', actionBtn = '';
+  if (isTel) {
+    qrDesc = '手机扫描可直接拨打预约电话，或点击下方按钮直接呼叫。';
+    actionBtn = `<a href="${qrUrl}" class="phone-btn">📞 拨打 ${court.phone}</a>`;
+  } else if (isWeb) {
+    qrDesc = '手机扫描可跳转至预定页面，或复制链接后在浏览器中打开。';
+    actionBtn = `<a href="${qrUrl}" target="_blank" class="phone-btn" style="background:#1565c0;">🔗 打开预定页面</a>`;
+  } else {
+    qrDesc = '请使用手机扫描，或按提示方式进行预定。';
+    actionBtn = `<a href="tel:${court.phone.replace(/-/g, '')}" class="phone-btn">📞 拨打 ${court.phone}</a>`;
+  }
+
+  modal.innerHTML = `
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div style="position:relative;">${photoHtml}</div>
+    <div class="modal-body">
+      <div class="modal-header-row"><div class="modal-title">${court.name}</div><div class="modal-tags"><span class="tag ${typeInfo.class}">${typeInfo.label}</span></div></div>
+      <div class="modal-info-grid">
+        <div class="info-row"><span class="label">📍 地址</span><span class="value">${court.address}</span></div>
+        <div class="info-row"><span class="label">🏟️ 场地</span><span class="value">${court.courtCount}片${typeInfo.label}场地</span></div>
+        <div class="info-row"><span class="label">💰 价格</span><span class="value" style="color:#e65100;font-weight:500;">${court.price}</span></div>
+        <div class="info-row"><span class="label">🕐 时间</span><span class="value">${court.hours}</span></div>
+        <div class="info-row full-width"><span class="label">📞 电话</span><span class="value">${court.phone}</span></div>
+        <div class="info-row full-width"><span class="label">📋 渠道</span><span class="value">${court.bookingChannel}</span></div>
+        ${court.bookingTips ? `<div class="info-row full-width"><span class="label">💡 提示</span><span class="value" style="color:#666;font-style:italic;">${court.bookingTips}</span></div>` : ''}
+      </div>
+      <div class="qrcode-section">
+        <h4>📱 扫码预定</h4>
+        <div class="qrcode-box">
+          <img class="qrcode-img" src="${qrApiUrl}" alt="预定二维码" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22140%22 height=%22140%22%3E%3Crect fill=%22%23f5f5f5%22 width=%22140%22 height=%22140%22/%3E%3Ctext x=%2270%22 y=%2275%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2212%22%3E二维码加载失败%3C/text%3E%3C/svg%3E'">
+          <div class="qrcode-info">
+            <div class="channel-name">${court.bookingChannel.split('/')[0].trim()}</div>
+            <div class="channel-desc">${qrDesc}</div>
+            ${actionBtn}
+          </div>
+        </div>
+        <div class="qrcode-tips">⚠️ 以上价格为参考价，实际价格请以场馆公示或电话咨询为准。建议订场前电话确认最新价格和空场情况。</div>
+      </div>
+    </div>`;
+  overlay.classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+  document.querySelectorAll('.court-card').forEach(card => card.classList.remove('active'));
+}
+
+function onOverlayClick(e) { if (e.target === e.currentTarget) closeModal(); }
+
+function initFilters() {
+  document.querySelectorAll('.type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter.type = btn.dataset.type;
+      refresh();
+    });
+  });
+
+  const districtContainer = document.getElementById('districtFilter');
+  districtContainer.innerHTML = DISTRICTS.map(d => `<span class="district-chip ${d === '全部' ? 'active' : ''}" data-district="${d}">${d}</span>`).join('');
+  districtContainer.querySelectorAll('.district-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      districtContainer.querySelectorAll('.district-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      currentFilter.district = chip.dataset.district;
+      refresh();
+    });
+  });
+}
+
+function initSearch() {
+  const searchInput = document.getElementById('searchInput');
+  let debounceTimer;
+  searchInput.addEventListener('input', (e) => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => { currentFilter.keyword = e.target.value.trim(); refresh(); }, 300);
+  });
+}
+
+function refresh() { renderCourtList(); createMarkers(); updateStats(); }
+
+function updateStats() {
+  const courts = getFilteredCourts();
+  document.getElementById('statTotal').textContent = courts.length;
+  document.getElementById('statIndoor').textContent = courts.filter(c => c.type === 'indoor' || c.type === 'both').length;
+  document.getElementById('statOutdoor').textContent = courts.filter(c => c.type === 'outdoor' || c.type === 'both').length;
+}
+
+function zoomIn() { if (map && mapLoaded) map.zoomIn(); }
+function zoomOut() { if (map && mapLoaded) map.zoomOut(); }
+function resetView() { if (map && mapLoaded) map.setZoomAndCenter(11, [121.4737, 31.2304]); }
+
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>
