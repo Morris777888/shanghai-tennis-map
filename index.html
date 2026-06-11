@@ -873,6 +873,13 @@ function showMapFallback(msg) {
     </div>`;
 }
 
+// 生成球场示意图片URL（基于球场ID固定，保证每个球场不同）
+function getCourtPhoto(court) {
+  if (court.photo) return court.photo;
+  const seed = `sh-tennis-${court.id}`;
+  return `https://picsum.photos/seed/${seed}/540/230`;
+}
+
 function getTypeColor(type, unconfirmed) {
   if (unconfirmed) return '#9B7FAF';
   return { indoor: '#6B8E7D', outdoor: '#7C9CB5', both: '#BC978C' }[type] || '#888';
@@ -963,7 +970,8 @@ function showCourtModal(court) {
   modal.innerHTML = `
     <button class="modal-close" onclick="closeModal()">×</button>
     <div class="modal-photo-wrap">
-      <div class="photo-placeholder">
+      <img class="modal-photo" src="${getCourtPhoto(court)}" alt="${court.name}" onerror="this.style.display='none'; this.parentElement.querySelector('.photo-placeholder').style.display='flex';" onload="this.style.display='block';">
+      <div class="photo-placeholder" style="display:none;position:absolute;top:0;left:0;right:0;bottom:0;">
         ${SVG_PLACEHOLDER}
         <div class="ph-text">${court.name}</div>
       </div>
